@@ -110,6 +110,7 @@ class SshJob(AbstractJob):
         check_arg_type(node, (SshProxy, LocalNode), "SshJob.node")
         self.node = node
         self.keep_connection = keep_connection
+        self.current_command = None
 
         # use command or commands
         if command is None and commands is None:
@@ -204,6 +205,10 @@ class SshJob(AbstractJob):
         # so we wait for one before we run the next
         overall = 0
         for command in self.commands:
+            if command.is_service():
+                self.current_command = command
+            else:
+                self.current_command = None
             if isinstance(self.node, LocalNode):
                 result = await command.co_run_local(self.node)
             else:
@@ -233,8 +238,9 @@ class SshJob(AbstractJob):
         Returns:
           None
         """
-        if not self.keep_connection:
-            await self.node.close()
+        if self.current_command is not None:
+            await self.node.cancel(self.current_command.get_id())
+            self.current_command = None
 
     def text_label(self):
         """

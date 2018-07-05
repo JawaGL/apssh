@@ -20,11 +20,26 @@ class AbstractCommand:
     Abstract base class for all command classes.
     """
 
-    def __init__(self, *, label=None):
+    def __init__(self, *, label=None, service = False):
         self.label = label
+        self.service = service
+        if service:
+            self.id = self._random_id()
+
 
     def __repr__(self):
         return "<{}: {}>".format(type(self).__name__, self.get_label_line())
+
+    ###
+
+    @staticmethod
+    def _random_id():
+        """
+        Generate a random string to avoid conflicting names
+        on the remote host
+        """
+        return "".join(random.choice('abcdefghijklmnopqrstuvwxyz')
+                       for i in range(8))
 
     ###
     async def co_run_remote(self, node):
@@ -55,6 +70,21 @@ class AbstractCommand:
         if not message.endswith("\n"):
             message += "\n"
         node.formatter.line(message, EXTENDED_DATA_STDERR, node.hostname)
+
+    def is_service(self):
+        """
+        Return true if command has been declared as a service. False if not
+        """
+        return self.service
+
+    def get_id(self):
+        """
+        Return the id if the instance is a service, None otherwise
+        """
+        if self.service:
+            return self.id
+        else:
+            return None
 
     # descriptive views, required by SshJob
     def get_label_line(self):                           # pylint: disable=c0111
@@ -109,11 +139,11 @@ class Run(AbstractCommand):
     # plus, maybe some day we'll need to add other keywords
     # to create_connection than just x11_forwarding,
     # so, it feels about right to call this just like x11
-    def __init__(self, *argv, label=None, verbose=False, x11=False):
+    def __init__(self, *argv, label=None, service=False, verbose=False, x11=False):
         self.argv = argv
         self.verbose = verbose
         self.x11 = x11
-        super().__init__(label=label)
+        super().__init__(label=label, service=service)
 
     def label_line(self):
         """
@@ -123,7 +153,11 @@ class Run(AbstractCommand):
         return self._remote_command()
 
     def _remote_command(self):
-        return " ".join(str(x) for x in self.argv)
+        if self.is_service():
+            command = f"echo \"$$\" > apssh_spid_{self.get_id()}; "
+            return command + " ".join(str(x) for x in self.argv)
+        else:
+            return " ".join(str(x) for x in self.argv)
 
     async def co_run_remote(self, node):
         """
@@ -135,7 +169,8 @@ class Run(AbstractCommand):
         connected = await node.connect_lazy()
         if not connected:
             return
-        node_run = await node.run(command, x11_forwarding=self.x11)
+        node_run = await node.run(command, command_id=self.get_id(),
+                                  x11_forwarding=self.x11)
         self._verbose_message(
             node, "Run: {} <- {}".format(node_run, command))
         return node_run
@@ -185,7 +220,7 @@ class RunLocalStuff(AbstractCommand):
     """
 
     def __init__(self, args, *,
-                 label=None,
+                 label=None, service=False,
                  includes=None, remote_basename=None,
                  x11=False, verbose=False):
         self.args = args
@@ -193,16 +228,8 @@ class RunLocalStuff(AbstractCommand):
         self.remote_basename = remote_basename
         self.x11 = x11
         self.verbose = verbose
-        super().__init__(label=label)
 
-    @staticmethod
-    def _random_id():
-        """
-        Generate a random string to avoid conflicting names
-        on the remote host
-        """
-        return "".join(random.choice('abcdefghijklmnopqrstuvwxyz')
-                       for i in range(8))
+        super().__init__(label=label, service=service)
 
     def _args_line(self):
         return " ".join(str(x) for x in self.args)
@@ -212,6 +239,8 @@ class RunLocalStuff(AbstractCommand):
         command = default_remote_workdir + "/" + command
         if self.verbose:
             command = "bash -x " + command
+        if self.is_service():
+            command = f"echo \"$$\" > apssh_spid_{self.get_id()}; " + command
         return command
 
     async def co_install(self, node, remote_path):
@@ -266,7 +295,8 @@ class RunLocalStuff(AbstractCommand):
         # trigger it
         command = self._remote_command()
         self._verbose_message(node, "RunLocalStuff: -> {}".format(command))
-        node_run = await node.run(command, x11_forwarding=self.x11)
+        node_run = await node.run(command, command_id=self.get_id(),
+                                  x11_forwarding=self.x11)
         self._verbose_message(
             node, "RunLocalStuff: {} <- {}".format(node_run, command))
         return node_run
@@ -301,7 +331,7 @@ class RunScript(RunLocalStuff):
     """
 
     def __init__(self, local_script, *args,
-                 label=None, includes=None, x11=False,
+                 label=None, service=False, includes=None, x11=False,
                  # if this is set, run bash -x
                  verbose=False):
         self.local_script = local_script
@@ -309,7 +339,7 @@ class RunScript(RunLocalStuff):
         remote_basename = self.local_basename + '-' + self._random_id()
 
         super().__init__(args,
-                         label=label,
+                         label=label, service=service,
                          includes=includes,
                          remote_basename=remote_basename,
                          x11=x11, verbose=verbose)
@@ -359,7 +389,7 @@ class RunString(RunLocalStuff):
     """
 
     def __init__(self, script_body, *args,
-                 label=None, includes=None, x11=False,
+                 label=None, service=False, includes=None, x11=False,
                  # the name under which the remote command will be installed
                  remote_name=None,
                  # if this is set, run bash -x
@@ -374,7 +404,7 @@ class RunString(RunLocalStuff):
             self.remote_name = ''
             remote_basename = self._random_id()
         super().__init__(args,
-                         label=label,
+                         label=label, service=service,
                          includes=includes,
                          remote_basename=remote_basename,
                          x11=x11, verbose=verbose)
