@@ -1,10 +1,20 @@
 # pylint: disable=c0111
 
-import asyncio
-
+import os
+import subprocess
+import platform
 from pathlib import Path
 
-from asynciojobs import Watch, Job, Scheduler
+def localuser():
+    return os.environ['LOGNAME']
+
+
+def localhostname():
+    command = "hostname"
+    completed = subprocess.run(command, stdout=subprocess.PIPE)
+    return (completed.stdout
+            .decode(encoding='utf-8')
+            .replace("\n", ""))
 
 import subprocess
 
@@ -39,3 +49,45 @@ def get_pid_from_apssh_file(filename):
 
 def rm_file(filepath):
     os.remove(filepath)
+
+def count_ssh_connections(incoming:bool, outgoing:bool):
+
+    """
+    tool for counting open connections
+
+    based on linux's 'ss' command for now
+    """
+
+    if platform.system() != "Linux":
+        raise ValueError(f"inspector works only on linux boxes")
+    if not incoming and not outgoing:
+        return 0
+    filters = []
+    if incoming:
+        filters.append("sport = :ssh")
+    if outgoing:
+        filters.append("dport = :ssh")
+    command = []
+    command.append("ss")
+    command += "-o state established".split()
+    filter = "( " + " or ".join(filters) + " )"
+    command.append(filter)
+#    print(" ".join(command))
+    completed = subprocess.run(command, stdout=subprocess.PIPE)
+    count = 0
+#    lines = completed.stdout.decode(encoding='utf8').split('\n')
+    for line in completed.stdout.split(b"\n"):
+        if not line or b"Netid" in line:
+            continue
+#        print(f"counting line {line}")
+        count += 1
+    return count
+
+def incoming_connections():
+    return count_ssh_connections(incoming=True, outgoing=False)
+
+def outgoing_connections():
+    return count_ssh_connections(outgoing=True, incoming=False)
+
+def in_out_connections():
+    return incoming_connections(), outgoing_connections()
