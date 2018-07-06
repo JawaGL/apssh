@@ -186,7 +186,7 @@ class SshProxy:                                         # pylint: disable=r0902
         # critical sections require mutual exclusions
         self._connect_lock = asyncio.Lock()
         self._disconnect_lock = asyncio.Lock()
-        self.remote_services = {}
+        self.channels = {}
 
     # make this an asynchroneous context manager
     # async with SshProxy(...) as ssh:
@@ -386,17 +386,17 @@ class SshProxy:                                         # pylint: disable=r0902
             await self._close_sftp()
             await self._close_ssh()
 
-    async def cancel(self, command_id):
+    async def shutdown(self, command_id):
         """
         Cancel the service command identified by command_id
         """
-        chan = self.remote_services[command_id]
-        file = f"apssh_spid_{command_id}"
-        await self.run(f"kill -TERM -$(cat {file}); rm {file}")
+        chan = self.channels[command_id]
+        file = ".apssh/apssh_spid_{}".format(command_id)
+        await self.run("kill -TERM -$(cat {}); rm {}".format(file, file))
         #Openssh does not support this for now
         #chan.send_signal("TERM")
         await chan.wait_closed()
-        del self.remote_services[command_id]
+        del self.channels[command_id]
         return 0
     ##############################
     async def run(self, command, command_id=None, **x11_kwds):
@@ -415,7 +415,8 @@ class SshProxy:                                         # pylint: disable=r0902
         """
 
         # pylint: disable=c0111
-
+        if command_id is not None:
+            self.mkdir(".apssh")
         # this closure is a _LineBasedSession
         # with a .proxy attribute that points back here
         class SessionClosure(_LineBasedSession):
@@ -429,7 +430,7 @@ class SshProxy:                                         # pylint: disable=r0902
                 self.conn.create_session(SessionClosure, command, **x11_kwds),
                 timeout=self.timeout)
         if command_id is not None:
-            self.remote_services[command_id] = chan
+            self.channels[command_id] = chan
         await chan.wait_closed()
         return session._status                          # pylint: disable=w0212
 

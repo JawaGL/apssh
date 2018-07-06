@@ -205,7 +205,7 @@ class SshJob(AbstractJob):
         # so we wait for one before we run the next
         overall = 0
         for command in self.commands:
-            if command.is_service():
+            if command.service:
                 self.current_command = command
             else:
                 self.current_command = None
@@ -239,7 +239,7 @@ class SshJob(AbstractJob):
           None
         """
         if self.current_command is not None:
-            await self.node.cancel(self.current_command.get_id())
+            await self.node.shutdown(self.current_command.get_id())
             self.current_command = None
 
     def text_label(self):

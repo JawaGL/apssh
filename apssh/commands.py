@@ -20,7 +20,7 @@ class AbstractCommand:
     Abstract base class for all command classes.
     """
 
-    def __init__(self, *, label=None, service = False):
+    def __init__(self, *, label=None, service=False):
         self.label = label
         self.service = service
         if service:
@@ -70,12 +70,6 @@ class AbstractCommand:
         if not message.endswith("\n"):
             message += "\n"
         node.formatter.line(message, EXTENDED_DATA_STDERR, node.hostname)
-
-    def is_service(self):
-        """
-        Return true if command has been declared as a service. False if not
-        """
-        return self.service
 
     def get_id(self):
         """
@@ -153,8 +147,9 @@ class Run(AbstractCommand):
         return self._remote_command()
 
     def _remote_command(self):
-        if self.is_service():
-            command = f"echo \"$$\" > apssh_spid_{self.get_id()}; "
+        if self.service:
+            command = "echo \"$$\" > .apssh/apssh_spid_{}; "\
+                      .format(self.get_id())
             return command + " ".join(str(x) for x in self.argv)
         else:
             return " ".join(str(x) for x in self.argv)
@@ -181,7 +176,7 @@ class Run(AbstractCommand):
         """
         command = self._remote_command()
         self._verbose_message(localnode, "Run: -> {}".format(command))
-        retcod = await localnode.run(command)
+        retcod = await localnode.run(command, command_id=self.get_id())
         self._verbose_message(
             localnode, "Run: {} <- {}".format(retcod, command))
         return retcod
@@ -239,8 +234,9 @@ class RunLocalStuff(AbstractCommand):
         command = default_remote_workdir + "/" + command
         if self.verbose:
             command = "bash -x " + command
-        if self.is_service():
-            command = f"echo \"$$\" > apssh_spid_{self.get_id()}; " + command
+        if self.service:
+            command = "echo \"$$\" > .apssh/apssh_spid_{}; "\
+                      .format(self.get_id()) + command
         return command
 
     async def co_install(self, node, remote_path):
