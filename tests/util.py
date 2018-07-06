@@ -5,9 +5,12 @@ import subprocess
 import platform
 from pathlib import Path
 
+import psutil
+
+
+# environment
 def localuser():
     return os.environ['LOGNAME']
-
 
 def localhostname():
     command = "hostname"
@@ -16,10 +19,8 @@ def localhostname():
             .decode(encoding='utf-8')
             .replace("\n", ""))
 
-import subprocess
 
-import os
-
+# shortcut to make png output
 def produce_png(scheduler, name):
     dot = scheduler.graph()
     dot.format = 'png'
@@ -32,11 +33,10 @@ def produce_png(scheduler, name):
     dot.render(actual_name)
     print(f"png file produced in {actual_name}{{,.png}}")
 
-def check_pid_alive(pid):
-    with open(os.devnull, 'w') as devnull:
-        ret = subprocess.run(["kill", "-0", "{}".format(pid)], stdout=devnull,
-                             stderr=devnull).returncode
-        return ret
+
+# process management
+def pid_is_alive(pid):
+    return pid in psutil.pids()
 
 def get_pid_from_apssh_file(filename):
     with Path(filename).open() as file:
@@ -50,8 +50,9 @@ def get_pid_from_apssh_file(filename):
 def rm_file(filepath):
     os.remove(filepath)
 
-def count_ssh_connections(incoming:bool, outgoing:bool):
 
+# ssh connections accounting
+def count_ssh_connections(incoming:bool, outgoing:bool):
     """
     tool for counting open connections
 

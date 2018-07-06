@@ -1,6 +1,8 @@
-import apssh
-import util
+import os
 import asyncio
+
+import apssh
+import .util
 
 def test_service_local(time):
     async def run_service(time, event):
@@ -17,9 +19,9 @@ def test_service_local(time):
     async def check_alive(event):
         await event.wait()
         pid = util.get_pid_from_apssh_file(".apssh/apssh_spid_1")
-        ret = util.check_pid_alive(pid)
-        util.rm_file(".apssh/apssh_spid_1")
-        if ret:
+        alive = util.pid_is_alive(pid)
+        os.remove(".apssh/apssh_spid_1")
+        if not alive:
             print("OK service dead")
         else:
             print("NOK service running")

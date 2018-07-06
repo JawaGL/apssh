@@ -19,7 +19,7 @@ def test_service_on_local_node(time):
     if len(file_list) > 0:
         for file in file_list:
             pid = util.get_pid_from_apssh_file(file)
-            if util.check_pid_alive(pid) == 0:
+            if util.pid_is_alive(pid):
                 print("ZOMBIEEEEEEEEEEEEEEEE")
                 #break
 

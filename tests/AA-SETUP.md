@@ -27,10 +27,10 @@ Recommended now:
   * from host to guest as root; this one is used to log in manually but not by the test code; you might wish to write down the guest's IP address in your ssh client bookmarks
   * and **in loopback from root on guest to root on guest** - this si the one used by all tests
 
-* install dependencies graphviz and orderedset
+* install dependencies
 
 ```
-pip3 install asyncssh asynciojobs orderedset
+pip3 install asyncssh asynciojobs orderedset psutil
 apt-get install graphviz
 pip3 install graphviz
 ```
