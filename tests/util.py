@@ -36,7 +36,7 @@ def produce_png(scheduler, name):
 
 # process management
 def pid_is_alive(pid):
-    return pid in psutil.pids()
+    return psutil.pid_exists(pid)
 
 def get_pid_from_apssh_file(filename):
     with Path(filename).open() as file:
@@ -46,9 +46,6 @@ def get_pid_from_apssh_file(filename):
         except ValueError:
             ret = -1
         return ret
-
-def rm_file(filepath):
-    os.remove(filepath)
 
 
 # ssh connections accounting
