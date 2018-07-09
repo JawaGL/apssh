@@ -40,7 +40,7 @@ pip3 install graphviz
 It can be interesting to also share asynciojobs, and then define `PYTHONPATH` accordingly:
 
 ```
-root@apssh-testbox:/media/sf_apssh# export $PYTHONPATH=/media/sf_asynciojobs
+root@apssh-testbox:/media/sf_apssh# export PYTHONPATH=/media/sf_asynciojobs
 ```
 
 
