@@ -56,6 +56,7 @@ class LocalNode:
         # could be improved
         self.hostname = "LOCALNODE"
         self.processes = {}
+        self.gateway = None
         # some users reported issues with this so
         # given that it's really only for convenience
         # let's do this best effort

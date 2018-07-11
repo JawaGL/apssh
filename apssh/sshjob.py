@@ -226,6 +226,20 @@ class SshJob(AbstractJob):
                     # overall result is wrong
                     overall = result
         return overall
+    async def close(self):
+        """
+        Implemented as part of the AbstractJob_ protocol.
+
+        Default behaviour is to close the underlying ssh connection,
+        that is to say the attached `node` object, unless ``keep_connection``
+        was set, in which case no action is taken.
+
+        Returns:
+          None
+        """
+
+        if not self.keep_connection:
+            await self.node.close()
 
     async def co_shutdown(self):
         """
@@ -275,3 +289,5 @@ class SshJob(AbstractJob):
         """
         # turn out the logic for graph_label is exactly right
         return self.graph_label()
+    def get_node(self):
+        return self.node
