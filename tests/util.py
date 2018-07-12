@@ -3,7 +3,6 @@
 import os
 import subprocess
 import platform
-import glob
 from pathlib import Path
 
 import psutil
@@ -49,8 +48,11 @@ def get_pid_from_apssh_file(filename):
         return ret
 
 def get_apssh_files_list(path):
-    path = path + ".apssh/apssh_spid_*"
-    return glob.glob(path)
+    #path = path + ".apssh/apssh_spid_*"
+    path += "/.apssh"
+    pattern = "apssh_spid_*"
+
+    return list(Path(path).glob(pattern))
 
 def check_apssh_files_alive(file_list):
     alive = 0

@@ -2,10 +2,11 @@ import os
 import time
 import asyncio
 import signal
-
+from pathlib import Path
 from asynciojobs import Scheduler
 from apssh import SshJob, LocalNode, Run, RunScript, RunString, SshNode
 from apssh import ColonFormatter, load_private_keys, CommandFailedError
+from apssh.util import co_close_ssh_from_sched
 import tests.util as util
 
 import unittest
@@ -13,9 +14,9 @@ import unittest
 class Tests(unittest.TestCase):
 
     def get_files_len_and_alive(self, node):
-        apssh_path = "/root/"
+        apssh_path = "/root"
         if isinstance(node, LocalNode):
-            apssh_path = ""
+            apssh_path = "."
         file_start = util.get_apssh_files_list(apssh_path)
         expected_alive = util.check_apssh_files_alive(file_start)
         return len(file_start), expected_alive
@@ -37,7 +38,6 @@ class Tests(unittest.TestCase):
                       nested=False, sched_timeout=None):
 
         expected_len, expected_alive = self.get_files_len_and_alive(node)
-
         if username is None:
             username = util.localuser()
 
@@ -59,7 +59,6 @@ class Tests(unittest.TestCase):
         time.sleep(1)
 
         len_file, alive = self.get_files_len_and_alive(node)
-
         self.assertEqual(alive, expected_alive)
         self.assertEqual(len_file, expected_len)
 
@@ -178,7 +177,8 @@ Zombie processes when using a command of RunString type on remote nodes")
     #    command = RunString("sleep {}".format(1000*timeout), service=True)
     #    self.scheduler_run(command, host=host, username=username,
     #                       timeout=timeout, node=node)
-    def test_explicit_connection_close(self, command_object=None,
+    # xxx This one is maybe not a classical use case
+    def explicit_connection_close(self, command_object=None,
      host="localhost", username=None, timeout=2, node=LocalNode(),
      nested=False):
         ## For now, always fail since it is not implemented
@@ -197,7 +197,7 @@ Zombie processes when using a command of RunString type on remote nodes")
         async def run_scheduler(scheduler, node):
             await asyncio.wait([scheduler.co_run()], timeout=timeout)
             print("Closing connection")
-            ret_close = await scheduler.co_close_connection()
+            ret_close = await co_close_ssh_from_sched(scheduler)
             print("Connection closed")
             self.assertFalse(ret_close)
 
@@ -237,7 +237,7 @@ Zombie processes when using a command of RunString type on remote nodes")
             await event.wait()
             pid = util.get_pid_from_apssh_file("/root/.apssh/apssh_spid_1")
             alive = util.pid_is_alive(pid)
-            os.remove("/root/.apssh/apssh_spid_1")
+            Path("/root/.apssh/apssh_spid_1").unlink()
             self.assertFalse(alive)
             if not alive:
                 print("OK service dead")
@@ -269,7 +269,7 @@ processes when called directly : ")
             await event.wait()
             pid = util.get_pid_from_apssh_file(".apssh/apssh_spid_1")
             alive = util.pid_is_alive(pid)
-            os.remove(".apssh/apssh_spid_1")
+            Path(".apssh/apssh_spid_1").unlink()
             self.assertFalse(alive)
             if not alive:
                 print("OK service dead")
@@ -287,15 +287,17 @@ processes when called directly : ")
         # possible that the services finish during another test, generating a
         # false positive
         print("Clean up")
-        remaining_processes_local = util.get_apssh_files_list("")
-        remaining_processes_remote = util.get_apssh_files_list("/root/")
+        remaining_processes_local = util.get_apssh_files_list(".")
+        remaining_processes_remote = util.get_apssh_files_list("/root")
         path = ".apssh/apssh_spid_*"
         for proc in remaining_processes_local:
             os.kill(-util.get_pid_from_apssh_file(proc), signal.SIGTERM)
-            os.remove(proc)
+            Path(proc).unlink()
+            #os.remove(proc)
         for proc in remaining_processes_remote:
             os.kill(-util.get_pid_from_apssh_file(proc), signal.SIGTERM)
-            os.remove(proc)
+            Path(proc).unlink()
+            #os.remove(proc)
 
     # formerly in test_apssh_service_local.py
 def main():

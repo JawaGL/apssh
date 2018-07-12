@@ -289,5 +289,3 @@ class SshJob(AbstractJob):
         """
         # turn out the logic for graph_label is exactly right
         return self.graph_label()
-    def get_node(self):
-        return self.node

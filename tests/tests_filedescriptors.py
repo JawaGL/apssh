@@ -11,7 +11,7 @@ class Tests(unittest.TestCase):
             apssh.SshNode('127.0.0.1')
         fd_end = util.count_file_descriptors()
         # 3 file desciptor open by unitttest ?
-        self.assertEqual(fd_end, fd_init+3)
+        self.assertLess(fd_end, fd_init+10)
 
 def main():
     pass

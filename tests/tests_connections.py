@@ -6,15 +6,16 @@ from unittest import TestCase
 
 from asynciojobs import Scheduler
 
+from apssh import util as uti
 from apssh import SshNode, SshJob, ColonFormatter
-
 import time
 
 from .util import localuser, in_out_connections, count_ssh_connections_psutil
 from .util import count_file_descriptors
 class Tests(TestCase):
     def close_sched(self, sched, dummy_bool=False):
-        sched.close_connection()
+        uti.close_ssh_from_sched(sched)
+        #sched.close_connection()
     def close_nodes(self, nodes, gateway_first=True):
         if not gateway_first:
             nodes = nodes[::-1]
@@ -254,18 +255,8 @@ class Tests(TestCase):
         print(f"AFTER CLEANUP in={in1} out={out1}")
         self.assertEqual(in1-in0, 0)
         self.assertEqual(out1-out0, 0)
-        fd_init = count_file_descriptors()
-        print(fd_init)
 
-    def test_file_descriptor(self):
-        fd_init = count_file_descriptors()
-        print(fd_init)
-        for i in range(100):
-            SshNode('127.0.0.1')
-        time.sleep(1)
-        fd_end = count_file_descriptors()
-        print(fd_end)
-        assert(fd_end+3)
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
