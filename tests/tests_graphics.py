@@ -126,7 +126,3 @@ class Tests(unittest.TestCase):
         ok = scheduler.run()
 
         self.assertFalse(ok)
-
-
-if __name__ == '__main__':
-    unittest.main()

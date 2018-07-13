@@ -1,7 +1,7 @@
-import apssh
-import tests.util as util
-
 import unittest
+
+import apssh
+from . import util
 
 class Tests(unittest.TestCase):
 
@@ -12,9 +12,3 @@ class Tests(unittest.TestCase):
         fd_end = util.count_file_descriptors()
         # 3 file desciptor open by unitttest ?
         self.assertLess(fd_end, fd_init+10)
-
-def main():
-    pass
-
-if __name__ == '__main__':
-    self.main()

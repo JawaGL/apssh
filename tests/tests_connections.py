@@ -1,21 +1,24 @@
 # pylint: disable=c0111
 
-import asyncio
+import unittest
 
-from unittest import TestCase
+import time
+import asyncio
 
 from asynciojobs import Scheduler
 
 from apssh import util as uti
 from apssh import SshNode, SshJob, ColonFormatter
-import time
 
-from .util import localuser, in_out_connections, count_ssh_connections_psutil
-from .util import count_file_descriptors
-class Tests(TestCase):
+from .util import localuser, in_out_connections
+
+
+class Tests(unittest.TestCase):
+
     def close_sched(self, sched, dummy_bool=False):
         uti.close_ssh_from_sched(sched)
         #sched.close_connection()
+
     def close_nodes(self, nodes, gateway_first=True):
         if not gateway_first:
             nodes = nodes[::-1]
@@ -24,7 +27,6 @@ class Tests(TestCase):
                 asyncio.gather(*(node.close() for node in nodes)))
         except ConnectionError:
             print("Received ConnectionError from close")
-
 
     def hop1(self, hostname='localhost', username=None,
              *, c1, commands, s_command='echo hop1-{}-{}',
@@ -194,8 +196,8 @@ class Tests(TestCase):
     def test_hop2_222_sched(self):
         self.hop2(c1=2, c2=2, commands=2, close_method=self.close_sched)
 
-    def test_hopDepth(self, hostname='localhost', username=None, depth=4,
-                     commands=1, close_method=None, gateway_first=True):
+    def test_hop_depth(self, hostname='localhost', username=None, depth=4,
+                       commands=1, close_method=None, gateway_first=True):
         # Do not use the close_nodes manually on this test, it does keep the
         # Order of the declared nodes.
 
@@ -214,7 +216,7 @@ class Tests(TestCase):
         gateway = None
         for n in range(depth):
             node = SshNode(hostname, gateway=gateway,username=username,
-                            formatter=ColonFormatter(verbose=False))
+                           formatter=ColonFormatter(verbose=False))
             nodes.append(node)
             gateway = node
             print(id(node))
@@ -255,23 +257,3 @@ class Tests(TestCase):
         print(f"AFTER CLEANUP in={in1} out={out1}")
         self.assertEqual(in1-in0, 0)
         self.assertEqual(out1-out0, 0)
-
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-H", "--hostname", default=None)
-    parser.add_argument("-U", "--username", default=None)
-    parser.add_argument("-n", "--number", default=10, type=int)
-    parser.add_argument("-t", "--timeout", default=1., type=float)
-    parser.add_argument("-s", "--share-connection", action='store_false',
-                        default=True)
-    args = parser.parse_args()
-
-    Tests().simple(hostname=args.hostname,
-                 username=args.username,
-                 number=args.number,
-                 share_connection=args.share_connection)
-
-if __name__ == '__main__':
-    main()
