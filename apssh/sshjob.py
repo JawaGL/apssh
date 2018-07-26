@@ -247,8 +247,7 @@ class SshJob(AbstractJob):
         Returns:
           None
         """
-        if not self.keep_connection:
-            await self.node.close()
+        pass
 
     def text_label(self):
         """

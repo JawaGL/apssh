@@ -408,8 +408,6 @@ class SshProxy:                                         # pylint: disable=r0902
         """
 
         # pylint: disable=c0111
-        if command_id is not None:
-            await self.mkdir(".apssh")
         # this closure is a _LineBasedSession
         # with a .proxy attribute that points back here
         class SessionClosure(_LineBasedSession):
