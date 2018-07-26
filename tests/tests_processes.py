@@ -10,7 +10,7 @@ from asynciojobs import Scheduler
 
 from apssh import SshJob, LocalNode, Run, RunScript, RunString, SshNode
 from apssh import ColonFormatter, load_private_keys, CommandFailedError
-from apssh.util import co_close_ssh_from_sched
+#from apssh.util import co_close_ssh_from_sched
 
 from . import util
 
