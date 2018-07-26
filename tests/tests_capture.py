@@ -1,8 +1,8 @@
-from apssh import SshNode, SshJob, Run, CaptureFormatter, TerminalFormatter
+import unittest
 
 from asynciojobs import Scheduler
 
-import unittest
+from apssh import SshNode, SshJob, Run, CaptureFormatter, TerminalFormatter
 
 from .util import localuser, localhostname
 

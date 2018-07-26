@@ -395,7 +395,3 @@ xterm
         argv += ['-t', "localhost 127.0.0.1"]
         argv += ['hostname']
         self.run_apssh(argv)
-
-
-if __name__ == '__main__':
-    unittest.main()

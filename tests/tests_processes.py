@@ -1,21 +1,25 @@
+import unittest
+
 import os
 import time
 import asyncio
 import signal
+from pathlib import Path
 
 from asynciojobs import Scheduler
+
 from apssh import SshJob, LocalNode, Run, RunScript, RunString, SshNode
 from apssh import ColonFormatter, load_private_keys, CommandFailedError
-import tests.util as util
+from apssh.util import co_close_ssh_from_sched
 
-import unittest
+from . import util
 
 class Tests(unittest.TestCase):
 
     def get_files_len_and_alive(self, node):
-        apssh_path = "/root/"
+        apssh_path = "/root"
         if isinstance(node, LocalNode):
-            apssh_path = ""
+            apssh_path = "."
         file_start = util.get_apssh_files_list(apssh_path)
         expected_alive = util.check_apssh_files_alive(file_start)
         return len(file_start), expected_alive
@@ -37,7 +41,6 @@ class Tests(unittest.TestCase):
                       nested=False, sched_timeout=None):
 
         expected_len, expected_alive = self.get_files_len_and_alive(node)
-
         if username is None:
             username = util.localuser()
 
@@ -59,14 +62,14 @@ class Tests(unittest.TestCase):
         time.sleep(1)
 
         len_file, alive = self.get_files_len_and_alive(node)
-
         self.assertEqual(alive, expected_alive)
         self.assertEqual(len_file, expected_len)
 
     def test_implicit_timeout(self, host="localhost", username=None,
                                 timeout=2):
-        print("Testing that implicit shutdown on scheduler does not leave \
-Zombie processes when using a command of Run type on remote nodes and timing out")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on remote nodes and timing out")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = Run("sleep {}".format(1000*timeout), service=True)
@@ -74,9 +77,10 @@ Zombie processes when using a command of Run type on remote nodes and timing out
                            timeout=timeout+1, node=node, sched_timeout=timeout/2)
     def test_implicit_exception(self, host="localhost", username=None,
                                 timeout=-2):
-        print("Testing that implicit shutdown on scheduler does not leave \
-Zombie processes when using a command of Run type on remote nodes and \
-exiting uppon exception")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on remote nodes "
+              "and exiting uppon exception")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = Run("sleep {}".format(10*abs(timeout)), service=True)
@@ -86,8 +90,9 @@ exiting uppon exception")
 
     def test_scheduler_remote_Run(self, host="localhost", username=None,
                                 timeout=2):
-        print("Testing that implicit shutdown on scheduler does not leave \
-Zombie processes when using a command of Run type on remote nodes")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = Run("sleep {}".format(1000*timeout), service=True)
@@ -96,8 +101,9 @@ Zombie processes when using a command of Run type on remote nodes")
 
     def test_scheduler_nested_remote_Run(self, host="localhost", username=None,
                                 timeout=2):
-        print("Testing that implicit shutdown on nested scheduler does not leave \
-Zombie processes when using a command of Run type on remote nodes")
+        print("Testing that implicit shutdown on nested scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = Run("sleep {}".format(1000*timeout), service=True)
@@ -106,8 +112,9 @@ Zombie processes when using a command of Run type on remote nodes")
 
     def test_scheduler_remote_RunScript(self, host="localhost", username=None,
                             timeout=2):
-        print("Testing that implicit shutdown on scheduler does not leave \
-Zombie processes when using a command of RunScript type on remote nodes")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of RunScript type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = RunScript("tests/aservice.sh", timeout*10, service=True)
@@ -116,8 +123,9 @@ Zombie processes when using a command of RunScript type on remote nodes")
 
     def test_scheduler_nested_remote_RunScript(self, host="localhost",
                                                username=None, timeout=2):
-        print("Testing that implicit shutdown on nested scheduler does not leave \
-Zombie processes when using a command of RunScript type on remote nodes")
+        print("Testing that implicit shutdown on nested scheduler "
+              "does not leave Zombie processes "
+              "when using a command of RunScript type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = RunScript("tests/aservice.sh", timeout*10, service=True)
@@ -126,8 +134,9 @@ Zombie processes when using a command of RunScript type on remote nodes")
 
     def test_scheduler_remote_RunString(self, host="localhost", username=None,
                             timeout=2):
-        print("Testing that implicit shutdown on scheduler does not leave \
-Zombie processes when using a command of RunString type on remote nodes")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of RunString type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = RunString("sleep {}".format(1000*timeout), service=True)
@@ -136,8 +145,9 @@ Zombie processes when using a command of RunString type on remote nodes")
 
     def test_scheduler_nested_remote_RunString(self, host="localhost",
                                                username=None, timeout=2):
-        print("Testing that implicit shutdown on nested scheduler does not leave \
-Zombie processes when using a command of RunString type on remote nodes")
+        print("Testing that implicit shutdown on nested scheduler "
+              "does not leave Zombie processes "
+              "when using a command of RunString type on remote nodes")
         node = SshNode(host, username=username,
                                       formatter=ColonFormatter(verbose=False))
         command = RunString("sleep {}".format(1000*timeout), service=True)
@@ -146,8 +156,9 @@ Zombie processes when using a command of RunString type on remote nodes")
 
     def test_scheduler_local_Run(self, host="localhost", username=None,
                                 timeout=2):
-        print("Testing that implicit shutdown on scheduler does not leave\
- Zombie processes when using a command of Run type on local node")
+        print("Testing that implicit shutdown on scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on local node")
         node = LocalNode()
         command = Run("sleep {}".format(1000*timeout), service=True)
         self.scheduler_run(command, host=host, username=username,
@@ -155,8 +166,9 @@ Zombie processes when using a command of RunString type on remote nodes")
 
     def test_scheduler_nested_local_Run(self, host="localhost", username=None,
                                 timeout=2):
-        print("Testing that implicit shutdown on nested scheduler does not leave\
- Zombie processes when using a command of Run type on local node")
+        print("Testing that implicit shutdown on nested scheduler "
+              "does not leave Zombie processes "
+              "when using a command of Run type on local node")
         node = LocalNode()
         command = Run("sleep {}".format(1000*timeout), service=True)
         self.scheduler_run(command, host=host, username=username,
@@ -178,7 +190,8 @@ Zombie processes when using a command of RunString type on remote nodes")
     #    command = RunString("sleep {}".format(1000*timeout), service=True)
     #    self.scheduler_run(command, host=host, username=username,
     #                       timeout=timeout, node=node)
-    def test_explicit_connection_close(self, command_object=None,
+    # xxx This one is maybe not a classical use case
+    def explicit_connection_close(self, command_object=None,
      host="localhost", username=None, timeout=2, node=LocalNode(),
      nested=False):
         ## For now, always fail since it is not implemented
@@ -197,7 +210,7 @@ Zombie processes when using a command of RunString type on remote nodes")
         async def run_scheduler(scheduler, node):
             await asyncio.wait([scheduler.co_run()], timeout=timeout)
             print("Closing connection")
-            ret_close = await scheduler.co_close_connection()
+            ret_close = await co_close_ssh_from_sched(scheduler)
             print("Connection closed")
             self.assertFalse(ret_close)
 
@@ -225,9 +238,12 @@ Zombie processes when using a command of RunString type on remote nodes")
                                        formatter=ColonFormatter(verbose=False),
                                        keys=keys)
             await remote_node.connect_lazy()
-            command = "echo \"$$\" > .apssh/apssh_spid_11;echo \"$$\" > .apssh/apssh_spid_1; sleep {}".format(1000*timeout)
+            command = ("echo \"$$\" > .apssh/apssh_spid_11;"
+                       "echo \"$$\" > .apssh/apssh_spid_1;"
+                       "sleep {}".format(1000*timeout))
             print("Running service")
-            await asyncio.wait([remote_node.run(command, command_id="11")], timeout=timeout)
+            await asyncio.wait([remote_node.run(command, command_id="11")],
+                               timeout=timeout)
             print("Shutdown service")
             await remote_node.shutdown("11")
             await asyncio.sleep(1)
@@ -237,15 +253,15 @@ Zombie processes when using a command of RunString type on remote nodes")
             await event.wait()
             pid = util.get_pid_from_apssh_file("/root/.apssh/apssh_spid_1")
             alive = util.pid_is_alive(pid)
-            os.remove("/root/.apssh/apssh_spid_1")
+            Path("/root/.apssh/apssh_spid_1").unlink()
             self.assertFalse(alive)
             if not alive:
                 print("OK service dead")
             else:
                 print("NOK service running")
 
-        print("Testing that run methods of SshNode does not leave Zombie \
-processes when called directly : ")
+        print("Testing that run methods of SshNode does not leave Zombie "
+              "processes when called directly : ")
         keys = load_private_keys()
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
@@ -257,9 +273,12 @@ processes when called directly : ")
         async def run_service_local_run(timeout, event):
             local_node = LocalNode()
 
-            command = "echo \"$$\" > .apssh/apssh_spid_11;echo \"$$\" > .apssh/apssh_spid_1; sleep {}".format(1000*timeout)
+            command = ("echo \"$$\" > .apssh/apssh_spid_11;"
+                       "echo \"$$\" > .apssh/apssh_spid_1;"
+                       "sleep {}".format(1000*timeout))
             print("Running service")
-            await asyncio.wait([local_node.run(command, command_id="11")], timeout=timeout)
+            await asyncio.wait([local_node.run(command, command_id="11")],
+                               timeout=timeout)
             print("Shutdown service")
             await local_node.shutdown("11")
             await asyncio.sleep(1)
@@ -269,14 +288,14 @@ processes when called directly : ")
             await event.wait()
             pid = util.get_pid_from_apssh_file(".apssh/apssh_spid_1")
             alive = util.pid_is_alive(pid)
-            os.remove(".apssh/apssh_spid_1")
+            Path(".apssh/apssh_spid_1").unlink()
             self.assertFalse(alive)
             if not alive:
                 print("OK service dead")
             else:
                 print("NOK service running")
-        print("Testing that run methods of localnode does not leave Zombie \
-        processes when called directly : ")
+        print("Testing that run methods of localnode does not leave Zombie "
+              "processes when called directly : ")
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         loop.create_task(run_service_local_run(timeout, event))
@@ -287,19 +306,14 @@ processes when called directly : ")
         # possible that the services finish during another test, generating a
         # false positive
         print("Clean up")
-        remaining_processes_local = util.get_apssh_files_list("")
-        remaining_processes_remote = util.get_apssh_files_list("/root/")
+        remaining_processes_local = util.get_apssh_files_list(".")
+        remaining_processes_remote = util.get_apssh_files_list("/root")
         path = ".apssh/apssh_spid_*"
         for proc in remaining_processes_local:
             os.kill(-util.get_pid_from_apssh_file(proc), signal.SIGTERM)
-            os.remove(proc)
+            Path(proc).unlink()
+            #os.remove(proc)
         for proc in remaining_processes_remote:
             os.kill(-util.get_pid_from_apssh_file(proc), signal.SIGTERM)
-            os.remove(proc)
-
-    # formerly in test_apssh_service_local.py
-def main():
-    pass
-
-if __name__ == '__main__':
-    self.main()
+            Path(proc).unlink()
+            #os.remove(proc)
