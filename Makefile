@@ -35,9 +35,12 @@ tags:
 .PHONY: tags
 
 ##########
-# always running tests through nose makes life easier
+# xxx in theory this would do the trick
+# python3 -m unittest discover tests
+# but results in this error:
+# AttributeError: module '__main__' has no attribute 'discover'
 tests test:
-	nosetests tests/tests*.py
+	python3 -m unittest
 
 .PHONY: tests test
 
